@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Expert Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+
+        .header {
+            background-color: #fff;
+            border-bottom: 1px solid #e1e5e9;
+            padding: 16px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .stats {
+            display: flex;
+            gap: 24px;
+            align-items: center;
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+        }
+
+        .stat-icon {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .stat-icon.answered {
+            background-color: #10b981;
+        }
+
+        .stat-icon.pending {
+            background-color: #f59e0b;
+        }
+
+        .stat-icon.rating {
+            background-color: #fbbf24;
+        }
+
+        .container {
+            display: flex;
+            height: calc(100vh - 80px);
+        }
+
+        .sidebar {
+            width: 320px;
+            background-color: #fff;
+            border-right: 1px solid #e1e5e9;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .search-container {
+            padding: 16px;
+            border-bottom: 1px solid #e1e5e9;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 14px;
+            background-color: #f9fafb;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            background-color: #fff;
+        }
+
+        .conversation-list {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .conversation-item {
+            padding: 16px;
+            border-bottom: 1px solid #f3f4f6;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            position: relative;
+        }
+
+        .conversation-item:hover {
+            background-color: #f9fafb;
+        }
+
+        .conversation-item.active {
+            background-color: #eff6ff;
+            border-right: 3px solid #3b82f6;
+        }
+
+        .conversation-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 4px;
+        }
+
+        .user-name {
+            font-weight: 600;
+            font-size: 14px;
+            color: #111827;
+        }
+
+        .time {
+            font-size: 12px;
+            color: #6b7280;
+        }
+
+        .message-preview {
+            font-size: 14px;
+            color: #6b7280;
+            margin-bottom: 8px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 200px;
+        }
+
+        /* ✅ New styles for message count and read more */
+        .message-count {
+            background-color: #3b82f6;
+            color: white;
+            border-radius: 10px;
+            padding: 2px 6px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+
+        .read-more {
+            color: #3b82f6;
+            font-size: 12px;
+            cursor: pointer;
+            text-decoration: underline;
+        }
+
+        .read-more:hover {
+            color: #1d4ed8;
+        }
+
+        .conversation-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .status-badge.pending {
+            background-color: #fef3c7;
+            color: #92400e;
+        }
+
+        .status-badge.answered {
+            background-color: #d1fae5;
+            color: #065f46;
+        }
+
+        .rating {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 12px;
+            color: #6b7280;
+        }
+
+        .star {
+            color: #fbbf24;
+            font-size: 14px;
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background-color: #fff;
+        }
+
+        .empty-state {
+            text-align: center;
+            color: #6b7280;
+        }
+
+        .empty-state-icon {
+            width: 48px;
+            height: 48px;
+            background-color: #f3f4f6;
+            border-radius: 8px;
+            margin: 0 auto 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background-color: #e5e7eb;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 600;
+            color: #6b7280;
+            margin-right: 12px;
+        }
+
+        .conversation-item-content {
+            display: flex;
+            align-items: flex-start;
+            width: 100%;
+        }
+
+        .conversation-details {
+            flex: 1;
+        }
+
+        .unread-count {
+            background-color: #3b82f6;
+            color: white;
+            border-radius: 10px;
+            padding: 2px 6px;
+            font-size: 12px;
+            font-weight: 600;
+            min-width: 18px;
+            text-align: center;
+        }
+
+        /* ✅ New notification styles */
+        .new-message-indicator {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background-color: #ef4444;
+            color: white;
+            border-radius: 50%;
+            width: 8px;
+            height: 8px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 100%;
+            }
+
+            .main-content {
+                display: none;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <h1>Expert Dashboard</h1>
+        <div class="stats">
+            <div class="stat-item">
+                <div class="stat-icon answered"></div>
+                <span>Total Conversations</span>
+                <strong><%= doubts.length %></strong>
+            </div>
+            <div class="stat-item">
+                <div class="stat-icon pending"></div>
+                <span>Active Chats</span>
+                <strong><%= doubts.filter(d => d.lastMessage.timestamp > new Date(Date.now() - 24*60*60*1000)).length %></strong>
+            </div>
+            <div class="stat-item">
+                <div class="stat-icon rating"></div>
+                <span>Response Rate</span>
+                <strong>95%</strong>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="sidebar">
+            <div class="search-container">
+                <input type="text" class="search-input" placeholder="Search conversations..." />
+            </div>
+
+            <div class="conversation-list">
+                <% if (doubts.length === 0) { %>
+                    <div class="conversation-item">
+                        <div class="conversation-item-content">
+                            <div class="conversation-details">
+                                <div class="message-preview">No conversations yet</div>
+                            </div>
+                        </div>
+                    </div>
+                <% } else { %>
+                    <% doubts.forEach(({ _id, lastMessage, farmer, totalMessages }) => { %>
+                        <div class="conversation-item" data-room-id="<%= _id %>" 
+                             onclick="window.location.href='/experts/chat?id=<%= _id %>'">
+                            
+                            <!-- ✅ New message indicator -->
+                            <div class="new-message-indicator" style="display: none;"></div>
+                            
+                            <div class="conversation-item-content">
+                                <div class="user-avatar">
+                                    <%= farmer ? farmer.name.charAt(0).toUpperCase() : 'U' %>
+                                </div>
+                                <div class="conversation-details">
+                                    <div class="conversation-header">
+                                        <span class="user-name">
+                                            <%= farmer ? farmer.name : 'Unknown User' %>
+                                            <!-- ✅ Show message count if more than 1 -->
+                                            <% if (totalMessages > 1) { %>
+                                                <span class="message-count"><%= totalMessages %></span>
+                                            <% } %>
+                                        </span>
+                                        <span class="time">
+                                            <%= new Date(lastMessage.timestamp).toLocaleTimeString('en-IN', { 
+                                                hour: '2-digit', 
+                                                minute: '2-digit' 
+                                            }) %>
+                                        </span>
+                                    </div>
+                                    <div class="message-preview" title="<%= lastMessage.content %>">
+                                        <%= lastMessage.content.length > 50 ? lastMessage.content.substring(0, 50) + '...' : lastMessage.content %>
+                                    </div>
+                                    <!-- ✅ Show read more if message is long -->
+                                    <% if (lastMessage.content.length > 50) { %>
+                                        <div class="read-more" onclick="event.stopPropagation(); alert('<%= lastMessage.content.replace(/'/g, "\\'") %>')">
+                                            Read more
+                                        </div>
+                                    <% } %>
+                                    <div class="conversation-footer">
+                                        <span class="status-badge <%= lastMessage.seen ? 'answered' : 'pending' %>">
+                                            <%= lastMessage.seen ? '✓ Seen' : '⏳ Pending' %>
+                                        </span>
+                                        <div class="rating">
+                                            <span class="star">★</span>
+                                            <span>4.8</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    <% }) %>
+                <% } %>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="empty-state">
+                <div class="empty-state-icon">💬</div>
+                <p>Select a conversation to start responding</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const expertId = "<%= expertId %>";
+        const socket = io();
+        socket.emit("registerExpert", expertId);
+
+        // ✅ Keep track of existing conversations
+        const existingConversations = new Map();
+        
+        // ✅ Initialize with existing conversations
+        <% doubts.forEach(({ _id, lastMessage, farmer, totalMessages }) => { %>
+            existingConversations.set('<%= _id %>', {
+                farmerId: '<%= lastMessage.senderId %>',
+                farmerName: '<%= farmer ? farmer.name : "Unknown User" %>',
+                totalMessages: <%= totalMessages %>,
+                lastMessage: '<%= lastMessage.content %>',
+                timestamp: '<%= lastMessage.timestamp %>'
+            });
+        <% }) %>
+
+        // ✅ Handle new messages - update existing conversation instead of creating new one
+        socket.on("newMessageInDashboard", ({ senderId, message, roomId }) => {
+            console.log("📩 New message received:", { senderId, message, roomId });
+            
+            const conversationElement = document.querySelector(`[data-room-id="${roomId}"]`);
+            
+            if (conversationElement) {
+                // ✅ Update existing conversation
+                const messagePreview = conversationElement.querySelector('.message-preview');
+                const timeElement = conversationElement.querySelector('.time');
+                const messageCount = conversationElement.querySelector('.message-count');
+                const newMessageIndicator = conversationElement.querySelector('.new-message-indicator');
+                
+                // Update message preview
+                const truncatedMessage = message.length > 50 ? message.substring(0, 50) + '...' : message;
+                messagePreview.textContent = truncatedMessage;
+                messagePreview.title = message;
+                
+                // Update timestamp
+                timeElement.textContent = new Date().toLocaleTimeString('en-IN', { 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                });
+                
+                // Update message count
+                const conversation = existingConversations.get(roomId);
+                if (conversation) {
+                    conversation.totalMessages++;
+                    if (messageCount) {
+                        messageCount.textContent = conversation.totalMessages;
+                    } else {
+                        // Create message count badge if it doesn't exist
+                        const userName = conversationElement.querySelector('.user-name');
+                        const countSpan = document.createElement('span');
+                        countSpan.className = 'message-count';
+                        countSpan.textContent = conversation.totalMessages;
+                        userName.appendChild(countSpan);
+                    }
+                }
+                
+                // Show new message indicator
+                newMessageIndicator.style.display = 'block';
+                
+                // Move conversation to top
+                const conversationList = document.querySelector('.conversation-list');
+                conversationList.insertBefore(conversationElement, conversationList.firstChild);
+                
+                // Add/update read more functionality
+                if (message.length > 50) {
+                    let readMoreElement = conversationElement.querySelector('.read-more');
+                    if (!readMoreElement) {
+                        readMoreElement = document.createElement('div');
+                        readMoreElement.className = 'read-more';
+                        readMoreElement.textContent = 'Read more';
+                        readMoreElement.onclick = function(e) {
+                            e.stopPropagation();
+                            alert(message);
+                        };
+                        messagePreview.parentNode.insertBefore(readMoreElement, messagePreview.nextSibling);
+                    } else {
+                        readMoreElement.onclick = function(e) {
+                            e.stopPropagation();
+                            alert(message);
+                        };
+                    }
+                }
+            } else {
+                // ✅ Create new conversation item (for completely new users)
+                const conversationList = document.querySelector('.conversation-list');
+                const newConversationDiv = document.createElement('div');
+                newConversationDiv.className = 'conversation-item';
+                newConversationDiv.setAttribute('data-room-id', roomId);
+                newConversationDiv.onclick = () => window.location.href = `/experts/chat?id=${roomId}`;
+                
+                const truncatedMessage = message.length > 50 ? message.substring(0, 50) + '...' : message;
+                
+                newConversationDiv.innerHTML = `
+                    <div class="new-message-indicator"></div>
+                    <div class="conversation-item-content">
+                        <div class="user-avatar">U</div>
+                        <div class="conversation-details">
+                            <div class="conversation-header">
+                                <span class="user-name">New User</span>
+                                <span class="time">${new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</span>
+                            </div>
+                            <div class="message-preview" title="${message}">${truncatedMessage}</div>
+                            ${message.length > 50 ? `<div class="read-more" onclick="event.stopPropagation(); alert('${message.replace(/'/g, "\\'")}')">Read more</div>` : ''}
+                            <div class="conversation-footer">
+                                <span class="status-badge pending">⏳ Pending</span>
+                                <div class="rating">
+                                    <span class="star">★</span>
+                                    <span>4.8</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                conversationList.insertBefore(newConversationDiv, conversationList.firstChild);
+                
+                // Add to our tracking map
+                existingConversations.set(roomId, {
+                    farmerId: senderId,
+                    farmerName: 'New User',
+                    totalMessages: 1,
+                    lastMessage: message,
+                    timestamp: new Date().toISOString()
+                });
+            }
+        });
+
+        // ✅ Hide new message indicator when conversation is clicked
+        document.addEventListener('click', function(e) {
+            if (e.target.closest('.conversation-item')) {
+                const indicator = e.target.closest('.conversation-item').querySelector('.new-message-indicator');
+                if (indicator) {
+                    indicator.style.display = 'none';
+                }
+            }
+        });
+
+        // ✅ Search functionality
+        document.querySelector('.search-input').addEventListener('input', function(e) {
+            const searchTerm = e.target.value.toLowerCase();
+            const conversations = document.querySelectorAll('.conversation-item');
+
+            conversations.forEach(item => {
+                const userName = item.querySelector('.user-name').textContent.toLowerCase();
+                const messagePreview = item.querySelector('.message-preview').textContent.toLowerCase();
+
+                if (userName.includes(searchTerm) || messagePreview.includes(searchTerm)) {
+                    item.style.display = 'block';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        });
+    </script>
+</body>
+
+</html>

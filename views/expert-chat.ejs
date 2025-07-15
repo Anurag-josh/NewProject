@@ -373,14 +373,24 @@
                     socket.emit("chatMessage", {
                         roomId: "<%= expert._id %>",
                         message,
-                        senderId: mySocketId
+                        senderId: mySocketId,
+                        receiverId: "<%= expert._id %>", // ✅ make sure this is correct
+                        senderType: "user"
+                    });
+                    console.log("Sending chatMessage", {
+                        roomId: "<%= expert._id %>",
+                        message,
+                        senderId: mySocketId,
+                        receiverId: "<%= expert._id %>",
+                        senderType: "user"
                     });
 
-                    // appendMessage(true, message); // true => self
+
                     input.value = "";
                     autoResize(input);
                     hideTypingIndicator();
                 });
+
 
 
 

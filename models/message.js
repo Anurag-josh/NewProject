@@ -1,27 +1,13 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
 const messageSchema = new mongoose.Schema({
-  expertId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Expert',
-    required: true
-  },
-  sender: {
-    type: String, // 'user' or 'expert'
-    required: true
-  },
-  content: {
-    type: String,
-    default: ''
-  },
-  image: {
-    type: String, // file path or URL if image sent
-    default: null
-  },
-  timestamp: {
-    type: Date,
-    default: Date.now
-  }
+  roomId: String,
+  senderType: String, // "expert" or "farmer"
+  senderId: String,
+  receiverId: String,
+  content: String,
+  timestamp: { type: Date, default: Date.now },
+  seen: { type: Boolean, default: false }
 });
 
-module.exports = mongoose.model('Message', messageSchema);
+module.exports = mongoose.model("Message", messageSchema);

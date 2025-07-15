@@ -21,7 +21,9 @@ const chatbotRoutes = require('./routes/chatbot');
 const weatherRoutes = require('./routes/weather');
 const marketplaceRoutes = require('./routes/marketplace.js');
 const expertRoutes = require('./routes/experts.js');
+const Message = require('./models/message');
 
+const socketUserMap = new Map();
 
 
 //-----------------------
@@ -101,41 +103,125 @@ app.set('views', path.join(__dirname, 'views'));
 
 
 //----socket.io setup---
+// ✅ Updated socket.io setup in app.js
 io.on('connection', (socket) => {
   console.log('🔌 New socket connected:', socket.id);
+
+  // 🧠 Expert registers so we can target him later
+  socket.on('registerExpert', (expertId) => {
+    socketUserMap.set(expertId.toString(), socket.id);
+    console.log(`✅ Expert ${expertId} mapped to socket ${socket.id}`);
+  });
 
   socket.on('joinRoom', (roomId) => {
     socket.join(roomId);
     console.log(`Socket ${socket.id} joined room ${roomId}`);
   });
 
-  socket.on('chatMessage', ({ roomId, message, senderId }) => {
-    io.to(roomId).emit('chatMessage', { message, senderId });
+  // ✅ Enhanced chatMessage handler
+  socket.on("chatMessage", async ({ roomId, message, senderId, receiverId, senderType }) => {
+    console.log("📥 Received chatMessage", { roomId, message, senderId, receiverId, senderType });
+
+    try {
+      // ✅ Save message to database
+      const savedMessage = await Message.create({
+        roomId,
+        senderId,
+        receiverId,
+        content: message,
+        senderType,
+        timestamp: new Date()
+      });
+
+      // ✅ Emit to room participants
+      io.to(roomId).emit("chatMessage", { 
+        message, 
+        senderId,
+        messageId: savedMessage._id,
+        timestamp: savedMessage.timestamp
+      });
+
+      // ✅ If this is a farmer message, notify expert dashboard
+      if (senderType === 'user' && receiverId) {
+        const expertSocketId = socketUserMap.get(receiverId.toString());
+        console.log("🔎 Looking for expert socket:", receiverId, "=>", expertSocketId);
+
+        if (expertSocketId) {
+          // ✅ Get additional info for dashboard notification
+          const User = require('./models/user');
+          let farmerInfo = null;
+          
+          try {
+            farmerInfo = await User.findById(senderId);
+          } catch (err) {
+            console.log("❌ Could not find farmer info:", err);
+          }
+
+          io.to(expertSocketId).emit("newMessageInDashboard", {
+            senderId,
+            message,
+            roomId,
+            farmerName: farmerInfo ? farmerInfo.name : 'Unknown User',
+            timestamp: savedMessage.timestamp
+          });
+          
+          console.log("📤 Sent newMessageInDashboard to expert socket:", expertSocketId);
+        } else {
+          console.log("❌ Expert socket not found in map.");
+        }
+      }
+    } catch (error) {
+      console.error("❌ Error handling chatMessage:", error);
+    }
   });
 
-  socket.on("endChat", (roomId) => {
-  if (activeRooms.has(roomId)) {
-    activeRooms.delete(roomId);
+  // ✅ Alternative registration method
+  socket.on("register", expertId => {
+    socketUserMap.set(expertId.toString(), socket.id);
+    console.log(`✅ Expert ${expertId} registered with socket ${socket.id}`);
+  });
 
-    // ✅ Broadcast to everyone in the room (user + expert)
-    io.to(roomId).emit("chatEnded");
+  // ✅ Enhanced endChat handler
+  socket.on("endChat", async (roomId) => {
+    try {
+      // ✅ Mark chat room as inactive in database
+      await ChatRoom.findOneAndUpdate(
+        { roomId },
+        { active: false }
+      );
 
-    // Remove everyone from room
-    const clients = io.sockets.adapter.rooms.get(roomId);
-    if (clients) {
-      clients.forEach(socketId => {
-        io.sockets.sockets.get(socketId)?.leave(roomId);
-      });
+      // ✅ Notify all participants
+      io.to(roomId).emit("chatEnded", { roomId });
+      
+      // ✅ Remove all clients from room
+      const clients = io.sockets.adapter.rooms.get(roomId);
+      if (clients) {
+        clients.forEach(socketId => {
+          io.sockets.sockets.get(socketId)?.leave(roomId);
+        });
+      }
+      
+      console.log(`✅ Room ${roomId} ended and marked inactive`);
+    } catch (error) {
+      console.error("❌ Error ending chat:", error);
     }
+  });
 
-    console.log(`Room ${roomId} ended by creator`);
-  }
-});
-
+  // ✅ Enhanced disconnect handler
   socket.on('disconnect', () => {
     console.log('🔌 Socket disconnected:', socket.id);
+    
+    // ✅ Remove expert from socketUserMap
+    for (const [expertId, sockId] of socketUserMap.entries()) {
+      if (sockId === socket.id) {
+        socketUserMap.delete(expertId);
+        console.log(`✅ Removed expert ${expertId} from socket map`);
+        break;
+      }
+    }
   });
 });
+
 
 
 // --- Middleware ---
